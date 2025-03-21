@@ -19,24 +19,17 @@ async function fetchApi() {
 
     // Fetch API
     const response = await fetch(`http://localhost:3000?page=${page}&limit=${limit}`, { method: 'GET' })
+    console.log(response)
     const result = await response.json()
-
+    console.log(result)
     // Show Task
     const tasks = result.task.results
+    console.log(tasks)
 
-    let taskItem = ""
     const notedID = []
     tasks.map((task) => {
         notedID.push(task.id)
-        // Default
-        if (task.status == false) {
-            taskItem = template.replace('{id}', task.id).replace('{taskName}', task.taskName).replace('{checked}', "").replace('{ID}', task.id).replace('{editID}', task.id)
-        } 
-        // If checklist
-        if (task.status == true) {
-            taskItem = template.replace('{id}', task.id).replace('{taskName}', task.taskName).replace('{checked}', 'checked').replace('{ID}', task.id).replace('{editID}', task.id)
-        } 
-        container.innerHTML += taskItem
+        container.innerHTML += template.replace('{id}', task.id).replace('{taskName}', task.taskName).replace('{checked}', task.status ? 'checked' : "").replace('{ID}', task.id).replace('{editID}', task.id)
     })
 
     for (let i = 0; i < notedID.length; i++) {
@@ -47,7 +40,7 @@ async function fetchApi() {
             if (id.checked == true) statusTask = true
             if (id.checked == false) statusTask = false
             
-            await fetch('http://localhost:3000', {
+            await fetch(`http://localhost:3000/${i}`, {
                 method: 'PATCH',
                 headers: {
                     "Content-Type": "application/json",

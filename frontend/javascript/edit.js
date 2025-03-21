@@ -28,8 +28,10 @@ async function edit() {
             })
         })
         const resultPUT = await responsePUT.json()
-
+        console.log(resultPUT)
         if (resultPUT.status === 406) {
+            editError.innerHTML = resultPUT.error
+        } else if (resultPUT.status === 422) {
             editError.innerHTML = resultPUT.error
         } else {
             location.replace('/')
