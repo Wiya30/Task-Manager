@@ -23,6 +23,10 @@ function queryParams(req, res, next) {
 }
 
 function formValidation(req, res, next) {
+    const { task } = req.body
+    if(!task) return res.json({status: 406, error: 'Field must be filled!'})
+    if (task.length > 10) return res.json({status: 422, error: 'Field must not exceed 10 characters'})
+
     if (req.body.task.length === 0) {
         console.error('Filed must not be empty')
         return next()
@@ -34,8 +38,15 @@ function formValidation(req, res, next) {
     next()
 }
 
+function idValidation(req, res, next) {
+    if (typeof req.params.id === 'string') {
+        req.params.id = parseInt(req.params.id)
+        return next()
+    }
+    next()
+}
+
 app.get('/', queryParams, async (req, res) => {
-    console.log(req.body)
     const page = parseInt(req.query.page)
     const limit = parseInt(req.query.limit)
 
@@ -73,9 +84,7 @@ app.get('/', queryParams, async (req, res) => {
 
 app.post('/', formValidation, async (req, res) => {
     const { task } = req.body
-    console.log(task)
-    if (!task) return res.json({status: 406, error: 'Field must be filled!'})   
-    if (task.length > 10) return res.json({status: 422, error: 'Field must not exceed 10 characters'})   
+ 
     const createTask = await prisma.task.create({
         data: {
             taskName: task,
@@ -84,6 +93,35 @@ app.post('/', formValidation, async (req, res) => {
     }) 
 
     res.status(200).send({msg: 'Task Created', createdTask: createTask})
+})
+
+app.get('/:id', idValidation, async (req, res) => {
+    const id = req.params.id
+    if (isNaN(id)) return res.status(400).send({error: 'ID must be number'})
+    
+    const getTaskID = await prisma.task.findUnique({
+        where: { id: id }
+    })
+
+    if (!getTaskID) return res.status(404).send({error: 'ID Not Found'})
+
+    res.status(200).send({msg: 'ID Found', task: getTaskID})
+})
+
+app.put('/:id', formValidation, idValidation, async (req, res) => {
+    const id = req.params.id
+    if (isNaN(id)) return res.status(400).send({error: 'ID must be number'})
+        
+    const getTaskID = await prisma.task.findUnique({
+        where: { id: id }
+    })
+    if (!getTaskID) return res.status(404).send({error: 'ID Not Found'})
+
+    const { task } = req.body
+
+    const updateTask = await prisma.task.update({ where: { id: id }, data: { taskName: task }})
+
+    res.status(200).send({msg: 'ID Updated', task: updateTask})
 })
 
 app.patch('/:id', async (req, res) => {
@@ -97,39 +135,8 @@ app.patch('/:id', async (req, res) => {
       res.status(200).send({msg: 'Status Updated', statusUpdate: updateStatusTask})
 })
 
-app.get('/:id', async (req, res) => {
-    const id = Number(req.params.id)
-    if (isNaN(id)) return res.status(400).send({error: 'ID must be number'})
-    
-
-    const getTaskID = await prisma.task.findUnique({
-        where: { id: id }
-    })
-
-    if (!getTaskID) return res.status(404).send({error: 'ID Not Found'})
-
-    res.status(200).send({msg: 'ID Found', task: getTaskID})
-})
-
-app.put('/:id', formValidation, async (req, res) => {
-    const id = Number(req.params.id)
-    if (isNaN(id)) return res.status(400).send({error: 'ID must be number'})
-        
-    const getTaskID = await prisma.task.findUnique({
-        where: { id: id }
-    })
-    if (!getTaskID) return res.status(404).send({error: 'ID Not Found'})
-
-    const { task } = req.body
-    if(!task) return res.json({status: 406, error: 'Field must be filled!'})
-    if (task.length > 10) return res.json({status: 422, error: 'Field must not exceed 10 characters'})   
-    const updateTask = await prisma.task.update({ where: { id: id }, data: { taskName: task }})
-
-    res.status(200).send({msg: 'ID Updated', task: updateTask})
-})
-
-app.delete('/:id', async (req, res) => {
-    const id = Number(req.params.id)
+app.delete('/:id', idValidation, async (req, res) => {
+    const id = req.params.id
     if (isNaN(id)) return res.status(400).send({error: 'ID must be number'})
         
     const getTaskID = await prisma.task.findUnique({
