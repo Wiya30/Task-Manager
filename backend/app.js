@@ -1,7 +1,6 @@
 const express = require('express')
 const cors = require('cors')
 const { PrismaClient } = require('@prisma/client')
-const pinoApp = require('express')()
 const pino = require('pino-http')()
 
 const prisma = new PrismaClient()
@@ -14,35 +13,29 @@ app.use(express.json())
 app.use(pino)
 
 function queryParams(req, res, next) {
-    if ( (isNaN(req.query.page) || req.query.page == "") || (isNaN(req.query.limit) || req.query.limit == "") ) {
+    if (isNaN(req.query.page) || req.query.page == "" || isNaN(req.query.limit) || req.query.limit == "") {
         req.query.page = 1
         req.query.limit = 5
-        return next()
     } 
     next()
 }
 
 function formValidation(req, res, next) {
-    const { task } = req.body
-    if(!task) return res.json({status: 406, error: 'Field must be filled!'})
-    if (task.length > 10) return res.json({status: 422, error: 'Field must not exceed 10 characters'})
+    // Add something
+    try {
+        const {task} = req.body
 
-    if (req.body.task.length === 0) {
-        console.error('Filed must not be empty')
-        return next()
+        if(!task) return res.json({status: 406, error: 'Field must be filled!'})
+        if (task.length > 10) return res.json({status: 406, error: 'Field must not exceed 10 characters'})
+    } catch (error) {
+        console.error(error)
     }
-    if (req.body.task.length > 10) {
-        console.error("Field must not exceed 10 character")
-        return next()
-    }
-    next()
 }
 
 function idValidation(req, res, next) {
-    if (typeof req.params.id === 'string') {
-        req.params.id = parseInt(req.params.id)
-        return next()
-    }
+    // Change
+    req.params.id = parseInt(req.params.id)
+
     next()
 }
 
@@ -97,6 +90,7 @@ app.post('/', formValidation, async (req, res) => {
 
 app.get('/:id', idValidation, async (req, res) => {
     const id = req.params.id
+    // Move to middleware
     if (isNaN(id)) return res.status(400).send({error: 'ID must be number'})
     
     const getTaskID = await prisma.task.findUnique({
@@ -108,8 +102,9 @@ app.get('/:id', idValidation, async (req, res) => {
     res.status(200).send({msg: 'ID Found', task: getTaskID})
 })
 
-app.put('/:id', formValidation, idValidation, async (req, res) => {
+app.put('/:id', idValidation, formValidation, async (req, res) => {
     const id = req.params.id
+    // Move
     if (isNaN(id)) return res.status(400).send({error: 'ID must be number'})
         
     const getTaskID = await prisma.task.findUnique({
@@ -124,6 +119,7 @@ app.put('/:id', formValidation, idValidation, async (req, res) => {
     res.status(200).send({msg: 'ID Updated', task: updateTask})
 })
 
+// No middleware, id take from params
 app.patch('/:id', async (req, res) => {
     const { id, statusTask } = req.body
 

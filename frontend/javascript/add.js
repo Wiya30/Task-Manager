@@ -15,6 +15,7 @@ addBtn.addEventListener('click', async (e) => {
         })
     })
     const result = await response.json()
+    console.log(result)
     if (result.status === 406) {
         error.innerHTML = result.error
     } else {
